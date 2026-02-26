@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据录入 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="sample-detail.html" class="btn btn-text">← 返回详情</a>
+        <h1 class="page-title">样本前处理 - <span id="sampleId">AK20260224001</span></h1>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-text" onclick="window.location.href='batch-data-entry.html'">批量录入模式 →</button>
+        <button class="btn btn-default" onclick="handleSaveDraft()">💾 保存草稿</button>
+        <button class="btn btn-primary" onclick="handleSubmit()">✓ 提交</button>
+      </div>
+    </div>
+
+    <!-- 样本信息 -->
+    <div class="card">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-color); border-radius: 4px;">
+        <div>
+          <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">样本编号</div>
+          <div style="font-weight: 600;">AK20260224001</div>
+        </div>
+        <div>
+          <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">样本名称</div>
+          <div style="font-weight: 600;">Sample-01</div>
+        </div>
+        <div>
+          <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">检验项目</div>
+          <div style="font-weight: 600;">全质粒测序</div>
+        </div>
+        <div>
+          <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">样本类型</div>
+          <div style="font-weight: 600;">平板样本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据录入表单 -->
+    <div class="form-container">
+      <form id="dataEntryForm">
+        <div class="form-section">
+          <h3 class="form-section-title">数据录入</h3>
+
+          <!-- 核酸浓度 -->
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label required">核酸浓度</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input
+                  type="number"
+                  class="form-input"
+                  id="concentration"
+                  required
+                  placeholder="请输入核酸浓度"
+                  min="0"
+                  max="1000"
+                  step="0.01"
+                  oninput="handleConcentrationChange()"
+                  onblur="validateNumber(this, 0, 1000)"
+                  style="flex: 1;"
+                >
+                <span style="color: var(--text-secondary); white-space: nowrap;">ng/μL</span>
+              </div>
+              <span class="form-hint">请输入0-1000之间的数值</span>
+              <span class="form-error" style="display: none;"></span>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label">补ddH₂O</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input
+                  type="number"
+                  class="form-input"
+                  id="waterVolume"
+                  disabled
+                  placeholder="自动计算"
+                  style="flex: 1; background: var(--bg-color);"
+                >
+                <span style="color: var(--text-secondary); white-space: nowrap;">μL</span>
+              </div>
+              <span class="form-hint" style="color: var(--primary-color);">
+                ℹ️ 自动计算: 根据核酸浓度自动计算补水量
+              </span>
+            </div>
+          </div>
+
+          <!-- OD260/280 -->
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label">OD260/280</label>
+              <input
+                type="number"
+                class="form-input"
+                id="od260280"
+                placeholder="请输入OD260/280比值"
+                step="0.01"
+                min="1.6"
+                max="2.2"
+                onblur="validateNumber(this, 1.6, 2.2)"
+              >
+              <span class="form-hint">正常范围: 1.8-2.0</span>
+              <span class="form-error" style="display: none;"></span>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label">OD260/230</label>
+              <input
+                type="number"
+                class="form-input"
+                id="od260230"
+                placeholder="请输入OD260/230比值"
+                step="0.01"
+                min="1.8"
+                max="2.5"
+                onblur="validateNumber(this, 1.8, 2.5)"
+              >
+              <span class="form-hint">正常范围: 2.0-2.2</span>
+              <span class="form-error" style="display: none;"></span>
+            </div>
+          </div>
+
+          <!-- 操作信息 -->
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label required">操作人</label>
+              <select class="form-select" id="operator" required>
+                <option value="">请选择操作人</option>
+                <option value="张三">张三</option>
+                <option value="李四" selected>李四</option>
+                <option value="王五">王五</option>
+                <option value="赵六">赵六</option>
+              </select>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label required">操作时间</label>
+              <input
+                type="datetime-local"
+                class="form-input"
+                id="operationTime"
+                required
+              >
+            </div>
+          </div>
+
+          <!-- 备注 -->
+          <div class="form-row single">
+            <div class="form-item">
+              <label class="form-label">备注</label>
+              <textarea
+                class="form-textarea"
+                id="remark"
+                placeholder="请输入备注信息（可选）"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实时验证提示 -->
+        <div id="validationSummary" style="display: none; padding: 16px; background: #FEF0F0; border-left: 4px solid var(--danger-color); border-radius: 4px; margin-bottom: 16px;">
+          <h4 style="color: var(--danger-color); margin-bottom: 8px;">⚠️ 请修正以下错误:</h4>
+          <ul id="validationErrors" style="margin-left: 20px; color: var(--danger-color);"></ul>
+        </div>
+      </form>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="card">
+      <h3 class="card-title">历史记录</h3>
+
+      <div style="border-left: 3px solid var(--success-color); padding-left: 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-weight: 600; color: var(--text-primary);">✓ 核酸提取</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">2026-02-24 12:00 - 李四</div>
+        </div>
+        <div style="color: var(--text-regular); font-size: 14px;">
+          96孔板号: P096-001, 孔号: B03
+        </div>
+      </div>
+
+      <div style="border-left: 3px solid var(--success-color); padding-left: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-weight: 600; color: var(--text-primary);">✓ 摇菌</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">2026-02-24 10:30 - 王五</div>
+        </div>
+        <div style="color: var(--text-regular); font-size: 14px;">
+          48深孔板号: P001, 孔号: A01<br>
+          摇菌时间: 09:45 - 10:30
+        </div>
+      </div>
+    </div>
+
+    <!-- 帮助提示 -->
+    <div style="padding: 16px; background: #F0F9FF; border-radius: 4px; margin-top: 16px;">
+      <h4 style="color: var(--primary-color); margin-bottom: 8px;">💡 操作提示</h4>
+      <ul style="margin-left: 20px; color: var(--text-regular); line-height: 1.8;">
+        <li>必填字段标记有红色星号，请确保填写完整</li>
+        <li>数值字段会进行实时验证，超出范围会显示错误提示</li>
+        <li>公式字段会根据输入自动计算，无需手动填写</li>
+        <li>点击"保存草稿"可暂存数据，稍后继续编辑</li>
+        <li>点击"提交"后数据将保存并流转到下一节点</li>
+        <li>支持扫码枪输入容器编号和样本编号</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 设置默认操作时间
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('operationTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+      // 获取URL参数
+      const urlParams = new URLSearchParams(window.location.search);
+      const sampleId = urlParams.get('id') || 'AK20260224001';
+      document.getElementById('sampleId').textContent = sampleId;
+    });
+
+    // 核酸浓度变化 - 自动计算补水量
+    function handleConcentrationChange() {
+      const concentration = parseFloat(document.getElementById('concentration').value);
+      const waterVolumeInput = document.getElementById('waterVolume');
+
+      if (!isNaN(concentration) && concentration > 0) {
+        // 简化的公式: 假设目标浓度50ng/μL, 总体积100μL
+        const targetConcentration = 50;
+        const totalVolume = 100;
+        const sampleVolume = (targetConcentration * totalVolume) / concentration;
+        const waterVolume = totalVolume - sampleVolume;
+
+        waterVolumeInput.value = Math.max(0, waterVolume).toFixed(2);
+      } else {
+        waterVolumeInput.value = '';
+      }
+    }
+
+    // 验证表单
+    function validateFormData() {
+      const errors = [];
+      const validationSummary = document.getElementById('validationSummary');
+      const validationErrors = document.getElementById('validationErrors');
+
+      // 验证核酸浓度
+      const concentration = document.getElementById('concentration').value;
+      if (!concentration) {
+        errors.push('核酸浓度为必填项');
+      } else {
+        const value = parseFloat(concentration);
+        if (value < 0 || value > 1000) {
+          errors.push('核酸浓度必须在0-1000之间');
+        }
+      }
+
+      // 验证OD260/280
+      const od260280 = document.getElementById('od260280').value;
+      if (od260280) {
+        const value = parseFloat(od260280);
+        if (value < 1.6 || value > 2.2) {
+          errors.push('OD260/280比值超出正常范围(1.6-2.2)');
+        }
+      }
+
+      // 验证OD260/230
+      const od260230 = document.getElementById('od260230').value;
+      if (od260230) {
+        const value = parseFloat(od260230);
+        if (value < 1.8 || value > 2.5) {
+          errors.push('OD260/230比值超出正常范围(1.8-2.5)');
+        }
+      }
+
+      // 验证操作人
+      const operator = document.getElementById('operator').value;
+      if (!operator) {
+        errors.push('操作人为必填项');
+      }
+
+      // 验证操作时间
+      const operationTime = document.getElementById('operationTime').value;
+      if (!operationTime) {
+        errors.push('操作时间为必填项');
+      }
+
+      // 显示错误
+      if (errors.length > 0) {
+        validationErrors.innerHTML = errors.map(err => `<li>${err}</li>`).join('');
+        validationSummary.style.display = 'block';
+        return false;
+      } else {
+        validationSummary.style.display = 'none';
+        return true;
+      }
+    }
+
+    // 保存草稿
+    function handleSaveDraft() {
+      const formData = {
+        concentration: document.getElementById('concentration').value,
+        waterVolume: document.getElementById('waterVolume').value,
+        od260280: document.getElementById('od260280').value,
+        od260230: document.getElementById('od260230').value,
+        operator: document.getElementById('operator').value,
+        operationTime: document.getElementById('operationTime').value,
+        remark: document.getElementById('remark').value
+      };
+
+      console.log('保存草稿:', formData);
+      storage.set('draft_data', formData);
+      showMessage('草稿已保存', 'success');
+    }
+
+    // 提交
+    function handleSubmit() {
+      if (!validateFormData()) {
+        showMessage('请修正表单错误后再提交', 'error');
+        return;
+      }
+
+      const formData = {
+        sampleId: document.getElementById('sampleId').textContent,
+        concentration: document.getElementById('concentration').value,
+        waterVolume: document.getElementById('waterVolume').value,
+        od260280: document.getElementById('od260280').value,
+        od260230: document.getElementById('od260230').value,
+        operator: document.getElementById('operator').value,
+        operationTime: document.getElementById('operationTime').value,
+        remark: document.getElementById('remark').value
+      };
+
+      console.log('提交数据:', formData);
+      showMessage('数据提交成功，流程已流转到下一节点', 'success');
+
+      // 清除草稿
+      storage.remove('draft_data');
+
+      setTimeout(() => {
+        window.location.href = 'sample-detail.html?id=' + formData.sampleId;
+      }, 1500);
+    }
+
+    // 页面加载时恢复草稿
+    window.addEventListener('load', () => {
+      const draft = storage.get('draft_data');
+      if (draft) {
+        if (confirm('检测到未保存的草稿，是否恢复？')) {
+          document.getElementById('concentration').value = draft.concentration || '';
+          document.getElementById('waterVolume').value = draft.waterVolume || '';
+          document.getElementById('od260280').value = draft.od260280 || '';
+          document.getElementById('od260230').value = draft.od260230 || '';
+          document.getElementById('operator').value = draft.operator || '';
+          document.getElementById('operationTime').value = draft.operationTime || '';
+          document.getElementById('remark').value = draft.remark || '';
+
+          showMessage('草稿已恢复', 'info');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

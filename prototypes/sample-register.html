@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>样本登记 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="index.html" class="btn btn-text">← 返回首页</a>
+        <h1 class="page-title">样本登记</h1>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-default" onclick="handleCancel()">取消</button>
+        <button class="btn btn-primary" onclick="handleSave()">保存</button>
+      </div>
+    </div>
+
+    <div class="form-container">
+      <form id="sampleForm">
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <h3 class="form-section-title">基本信息</h3>
+
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label required">样本编号</label>
+              <input
+                type="text"
+                class="form-input"
+                id="sampleId"
+                value="AK20260224001"
+                required
+                placeholder="自动生成或手工输入"
+              >
+              <span class="form-hint">支持扫码枪输入</span>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label required">样本名称</label>
+              <input
+                type="text"
+                class="form-input"
+                id="sampleName"
+                required
+                placeholder="请输入样本名称"
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label required">检验项目</label>
+              <select class="form-select" id="projectType" required onchange="handleProjectChange()">
+                <option value="">请选择检验项目</option>
+                <option value="全质粒测序">全质粒测序</option>
+                <option value="PCR产物测序">PCR产物测序</option>
+              </select>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label required">样本类型</label>
+              <select class="form-select" id="sampleType" required disabled onchange="handleSampleTypeChange()">
+                <option value="">请先选择检验项目</option>
+              </select>
+              <span class="form-hint" id="processHint"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label required">提交人</label>
+              <input
+                type="text"
+                class="form-input"
+                id="submitter"
+                required
+                placeholder="请输入提交人姓名"
+              >
+            </div>
+
+            <div class="form-item">
+              <label class="form-label required">提交时间</label>
+              <input
+                type="datetime-local"
+                class="form-input"
+                id="submitTime"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-item">
+              <label class="form-label">备注</label>
+              <textarea
+                class="form-textarea"
+                id="remark"
+                placeholder="请输入备注信息（可选）"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 容器信息 -->
+        <div class="form-section">
+          <h3 class="form-section-title">容器信息（可选）</h3>
+
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label">容器类型</label>
+              <select class="form-select" id="containerType" onchange="handleContainerTypeChange()">
+                <option value="">不指定容器</option>
+                <option value="96孔板">96孔板</option>
+                <option value="48孔板">48孔板</option>
+                <option value="试管">试管</option>
+              </select>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label">容器编号</label>
+              <input
+                type="text"
+                class="form-input"
+                id="containerId"
+                placeholder="请输入或扫描容器编号"
+                disabled
+              >
+              <span class="form-hint">支持扫码枪输入</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label">孔位</label>
+              <select class="form-select" id="position" disabled>
+                <option value="">请先选择容器类型</option>
+              </select>
+              <span class="form-hint">或点击"查看板位图"可视化选择</span>
+            </div>
+
+            <div class="form-item" style="display: flex; align-items: flex-end;">
+              <button type="button" class="btn btn-default" onclick="openPlateMap()" disabled id="plateMapBtn">
+                查看板位图
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 流程预览 -->
+        <div class="form-section" id="processPreview" style="display: none;">
+          <h3 class="form-section-title">流程预览</h3>
+          <div class="progress-bar" id="processSteps"></div>
+          <div style="padding: 16px; background: #F0F9FF; border-radius: 4px; margin-top: 16px;">
+            <p style="color: var(--primary-color); font-size: 14px;">
+              ℹ️ 该样本将按照以上流程进行处理，部分节点可能根据样本类型自动跳过
+            </p>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="margin-top: 24px; display: flex; gap: 16px; justify-content: center;">
+      <button class="btn btn-default" onclick="handleBatchImport()">
+        📁 批量导入
+      </button>
+      <button class="btn btn-primary" onclick="handleContinueAdd()">
+        ➕ 继续添加
+      </button>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 设置默认提交时间为当前时间
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('submitTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+      // 生成样本编号
+      document.getElementById('sampleId').value = generateSampleId();
+    });
+
+    // 检验项目变更
+    function handleProjectChange() {
+      const projectType = document.getElementById('projectType').value;
+      const sampleTypeSelect = document.getElementById('sampleType');
+      const processHint = document.getElementById('processHint');
+
+      sampleTypeSelect.innerHTML = '<option value="">请选择样本类型</option>';
+
+      if (projectType) {
+        sampleTypeSelect.disabled = false;
+        const types = mockData.sampleTypes[projectType] || [];
+
+        types.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          sampleTypeSelect.appendChild(option);
+        });
+      } else {
+        sampleTypeSelect.disabled = true;
+        processHint.textContent = '';
+        document.getElementById('processPreview').style.display = 'none';
+      }
+    }
+
+    // 样本类型变更
+    function handleSampleTypeChange() {
+      const projectType = document.getElementById('projectType').value;
+      const sampleType = document.getElementById('sampleType').value;
+      const processHint = document.getElementById('processHint');
+      const processPreview = document.getElementById('processPreview');
+      const processSteps = document.getElementById('processSteps');
+
+      if (projectType && sampleType) {
+        const steps = mockData.processSteps[projectType] || [];
+
+        // 显示流程提示
+        processHint.textContent = `将使用 ${projectType} 流程`;
+        processHint.style.color = 'var(--success-color)';
+
+        // 显示流程预览
+        processPreview.style.display = 'block';
+        processSteps.innerHTML = '';
+
+        steps.forEach((step, index) => {
+          const stepDiv = document.createElement('div');
+          stepDiv.className = 'progress-step';
+
+          const icon = document.createElement('div');
+          icon.className = 'progress-icon';
+          icon.textContent = index + 1;
+
+          const label = document.createElement('div');
+          label.className = 'progress-label';
+          label.textContent = step;
+
+          stepDiv.appendChild(icon);
+          stepDiv.appendChild(label);
+          processSteps.appendChild(stepDiv);
+        });
+      } else {
+        processHint.textContent = '';
+        processPreview.style.display = 'none';
+      }
+    }
+
+    // 容器类型变更
+    function handleContainerTypeChange() {
+      const containerType = document.getElementById('containerType').value;
+      const containerIdInput = document.getElementById('containerId');
+      const positionSelect = document.getElementById('position');
+      const plateMapBtn = document.getElementById('plateMapBtn');
+
+      if (containerType) {
+        containerIdInput.disabled = false;
+        positionSelect.disabled = false;
+        plateMapBtn.disabled = false;
+
+        // 生成孔位选项
+        positionSelect.innerHTML = '<option value="">请选择孔位</option>';
+
+        if (containerType === '96孔板') {
+          const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+          for (let r = 0; r < 8; r++) {
+            for (let c = 1; c <= 12; c++) {
+              const position = `${rows[r]}${String(c).padStart(2, '0')}`;
+              const option = document.createElement('option');
+              option.value = position;
+              option.textContent = position;
+              positionSelect.appendChild(option);
+            }
+          }
+        } else if (containerType === '48孔板') {
+          const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+          for (let r = 0; r < 6; r++) {
+            for (let c = 1; c <= 8; c++) {
+              const position = `${rows[r]}${String(c).padStart(2, '0')}`;
+              const option = document.createElement('option');
+              option.value = position;
+              option.textContent = position;
+              positionSelect.appendChild(option);
+            }
+          }
+        } else {
+          positionSelect.innerHTML = '<option value="">试管无需选择孔位</option>';
+          positionSelect.disabled = true;
+        }
+      } else {
+        containerIdInput.disabled = true;
+        containerIdInput.value = '';
+        positionSelect.disabled = true;
+        positionSelect.innerHTML = '<option value="">请先选择容器类型</option>';
+        plateMapBtn.disabled = true;
+      }
+    }
+
+    // 打开板位图
+    function openPlateMap() {
+      const containerType = document.getElementById('containerType').value;
+      if (containerType === '96孔板' || containerType === '48孔板') {
+        window.open('plate-map.html', '_blank');
+      }
+    }
+
+    // 保存
+    function handleSave() {
+      if (!validateForm('sampleForm')) {
+        showMessage('请填写所有必填字段', 'error');
+        return;
+      }
+
+      const formData = {
+        sampleId: document.getElementById('sampleId').value,
+        sampleName: document.getElementById('sampleName').value,
+        projectType: document.getElementById('projectType').value,
+        sampleType: document.getElementById('sampleType').value,
+        submitter: document.getElementById('submitter').value,
+        submitTime: document.getElementById('submitTime').value,
+        remark: document.getElementById('remark').value,
+        containerType: document.getElementById('containerType').value,
+        containerId: document.getElementById('containerId').value,
+        position: document.getElementById('position').value
+      };
+
+      console.log('保存样本数据:', formData);
+      showMessage('样本登记成功!', 'success');
+
+      setTimeout(() => {
+        window.location.href = 'sample-list.html';
+      }, 1500);
+    }
+
+    // 取消
+    function handleCancel() {
+      if (confirm('确定要取消吗？未保存的数据将丢失。')) {
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 批量导入
+    function handleBatchImport() {
+      showMessage('批量导入功能开发中...', 'info');
+      // 实际项目中这里会打开文件选择对话框
+    }
+
+    // 继续添加
+    function handleContinueAdd() {
+      if (!validateForm('sampleForm')) {
+        showMessage('请先完成当前样本的登记', 'error');
+        return;
+      }
+
+      if (confirm('保存当前样本并继续添加新样本？')) {
+        handleSave();
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      }
+    }
+  </script>
+</body>
+</html>

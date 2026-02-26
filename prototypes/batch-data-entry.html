@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>批量数据录入 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .batch-toolbar {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: var(--bg-color);
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: var(--text-regular);
+    }
+
+    .progress-number {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-input {
+      width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .batch-table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 320px);
+    }
+
+    .batch-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+    }
+
+    .batch-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-color);
+    }
+
+    .batch-table th {
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-regular);
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+      background: var(--bg-color);
+    }
+
+    .batch-table th.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 11;
+      background: var(--bg-color);
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .batch-table td {
+      padding: 8px;
+      border-bottom: 1px solid #EBEEF5;
+      text-align: center;
+    }
+
+    .batch-table td.sticky-col {
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 5;
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .batch-table tbody tr:hover td {
+      background: var(--bg-color);
+    }
+
+    .batch-table tbody tr:hover td.sticky-col {
+      background: #F0F9FF;
+    }
+
+    .batch-table tbody tr.has-error {
+      background: #FEF0F0;
+    }
+
+    .batch-table tbody tr.completed {
+      background: #F0F9FF;
+    }
+
+    .cell-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .cell-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+    }
+
+    .cell-input.error {
+      border-color: var(--danger-color);
+      background: #FEF0F0;
+    }
+
+    .cell-input.success {
+      border-color: var(--success-color);
+      background: #F0F9FF;
+    }
+
+    .cell-input:disabled {
+      background: var(--bg-color);
+      cursor: not-allowed;
+    }
+
+    .sample-id-cell {
+      font-weight: 600;
+      color: var(--primary-color);
+      white-space: nowrap;
+    }
+
+    .position-cell {
+      font-weight: 500;
+      color: var(--text-regular);
+    }
+
+    .error-tooltip {
+      position: absolute;
+      background: var(--danger-color);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .cell-input.error:focus + .error-tooltip {
+      opacity: 1;
+    }
+
+    .paste-hint {
+      background: #F0F9FF;
+      border: 2px dashed var(--primary-color);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .paste-hint-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    .paste-hint-text {
+      font-size: 14px;
+      color: var(--text-regular);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .icon-btn {
+      padding: 4px 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.3s;
+      border-radius: 4px;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-color);
+      color: var(--primary-color);
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    .success-ripple {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--success-color);
+      animation: ripple 0.6s ease-out;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="sample-detail.html" class="btn btn-text">← 返回详情</a>
+        <h1 class="page-title">批量数据录入 - 样本前处理</h1>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-text" onclick="window.location.href='data-entry.html'">← 切换到单个录入</button>
+        <button class="btn btn-default" onclick="handleSaveDraft()">💾 保存草稿</button>
+        <button class="btn btn-default" onclick="handleClearAll()">🗑️ 清空</button>
+        <button class="btn btn-default" onclick="handleExportExcel()">📤 导出Excel</button>
+        <button class="btn btn-primary" onclick="handleBatchSubmit()">✓ 批量提交</button>
+      </div>
+    </div>
+
+    <!-- 粘贴提示 -->
+    <div class="paste-hint">
+      <div class="paste-hint-title">💡 快速录入提示</div>
+      <div class="paste-hint-text">
+        支持从Excel复制粘贴数据 (Ctrl+V) | 按Tab键快速切换单元格 | 按Enter键跳到下一行 | 支持批量填充相同数据
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="batch-toolbar">
+      <div class="toolbar-left">
+        <div class="progress-info">
+          <span class="progress-text">录入进度:</span>
+          <span class="progress-number" id="progressText">0/96</span>
+        </div>
+        <div class="search-box">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="搜索样本ID或孔位..."
+            id="searchInput"
+            oninput="handleSearch()"
+          >
+          <button class="btn btn-text" onclick="handleSearch()">🔍</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-default" onclick="handleAutoFill()">⚡ 智能填充</button>
+        <button class="btn btn-default" onclick="handleValidateAll()">✓ 验证全部</button>
+      </div>
+    </div>
+
+    <!-- 批量数据表格 -->
+    <div class="batch-table-container">
+      <div class="table-wrapper">
+        <table class="batch-table" id="batchTable">
+          <thead>
+            <tr>
+              <th class="sticky-col" style="width: 40px;">序号</th>
+              <th class="sticky-col" style="width: 140px; left: 40px;">样本ID</th>
+              <th style="width: 80px;">孔位</th>
+              <th style="width: 120px;">核酸浓度<br><small>(ng/μL)</small></th>
+              <th style="width: 120px;">补ddH₂O<br><small>(μL)</small></th>
+              <th style="width: 120px;">OD260/280</th>
+              <th style="width: 120px;">OD260/230</th>
+              <th style="width: 120px;">操作人</th>
+              <th style="width: 160px;">操作时间</th>
+              <th style="width: 200px;">备注</th>
+              <th style="width: 100px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- 动态生成96行 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // 生成96个样本数据
+    const samples = [];
+    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const operators = ['张三', '李四', '王五', '赵六'];
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 12; c++) {
+        const position = `${rows[r]}${String(c + 1).padStart(2, '0')}`;
+        samples.push({
+          index: r * 12 + c + 1,
+          sampleId: `AK20260224${String(r * 12 + c + 1).padStart(3, '0')}`,
+          position: position,
+          concentration: '',
+          waterVolume: '',
+          od260280: '',
+          od260230: '',
+          operator: '',
+          operationTime: '',
+          remark: '',
+          errors: {}
+        });
+      }
+    }
+
+    // 渲染表格
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      samples.forEach((sample, index) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${index}`;
+        tr.className = sample.completed ? 'completed' : '';
+
+        tr.innerHTML = `
+          <td class="sticky-col">${sample.index}</td>
+          <td class="sticky-col sample-id-cell" style="left: 40px;">${sample.sampleId}</td>
+          <td class="position-cell">${sample.position}</td>
+          <td>
+            <input
+              type="number"
+              class="cell-input"
+              data-field="concentration"
+              data-index="${index}"
+              value="${sample.concentration}"
+              placeholder="0-1000"
+              min="0"
+              max="1000"
+              step="0.01"
+              oninput="handleCellInput(${index}, 'concentration', this.value)"
+              onblur="validateCell(${index}, 'concentration')"
+            >
+          </td>
+          <td>
+            <input
+              type="number"
+              class="cell-input"
+              data-field="waterVolume"
+              data-index="${index}"
+              value="${sample.waterVolume}"
+              disabled
+              placeholder="自动计算"
+            >
+          </td>
+          <td>
+            <input
+              type="number"
+              class="cell-input"
+              data-field="od260280"
+              data-index="${index}"
+              value="${sample.od260280}"
+              placeholder="1.6-2.2"
+              min="1.6"
+              max="2.2"
+              step="0.01"
+              oninput="handleCellInput(${index}, 'od260280', this.value)"
+              onblur="validateCell(${index}, 'od260280')"
+            >
+          </td>
+          <td>
+            <input
+              type="number"
+              class="cell-input"
+              data-field="od260230"
+              data-index="${index}"
+              value="${sample.od260230}"
+              placeholder="1.8-2.5"
+              min="1.8"
+              max="2.5"
+              step="0.01"
+              oninput="handleCellInput(${index}, 'od260230', this.value)"
+              onblur="validateCell(${index}, 'od260230')"
+            >
+          </td>
+          <td>
+            <select
+              class="cell-input"
+              data-field="operator"
+              data-index="${index}"
+              onchange="handleCellInput(${index}, 'operator', this.value)"
+            >
+              <option value="">请选择</option>
+              ${operators.map(op => `<option value="${op}" ${sample.operator === op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <input
+              type="datetime-local"
+              class="cell-input"
+              data-field="operationTime"
+              data-index="${index}"
+              value="${sample.operationTime}"
+              oninput="handleCellInput(${index}, 'operationTime', this.value)"
+            >
+          </td>
+          <td>
+            <input
+              type="text"
+              class="cell-input"
+              data-field="remark"
+              data-index="${index}"
+              value="${sample.remark}"
+              placeholder="备注"
+              oninput="handleCellInput(${index}, 'remark', this.value)"
+            >
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="icon-btn" onclick="handleCopyRow(${index})" title="复制">📋</button>
+              <button class="icon-btn" onclick="handleClearRow(${index})" title="清空">🗑️</button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      updateProgress();
+    }
+
+    // 处理单元格输入
+    function handleCellInput(index, field, value) {
+      samples[index][field] = value;
+
+      // 自动计算补水量
+      if (field === 'concentration' && value) {
+        const concentration = parseFloat(value);
+        if (!isNaN(concentration) && concentration > 0) {
+          const targetConcentration = 50;
+          const totalVolume = 100;
+          const sampleVolume = (targetConcentration * totalVolume) / concentration;
+          const waterVolume = Math.max(0, totalVolume - sampleVolume).toFixed(2);
+
+          samples[index].waterVolume = waterVolume;
+          const waterInput = document.querySelector(`input[data-index="${index}"][data-field="waterVolume"]`);
+          if (waterInput) {
+            waterInput.value = waterVolume;
+          }
+        }
+      }
+
+      updateProgress();
+      storage.set('batch_draft', samples);
+    }
+
+    // 验证单元格
+    function validateCell(index, field) {
+      const sample = samples[index];
+      const input = document.querySelector(`input[data-index="${index}"][data-field="${field}"]`);
+
+      if (!input) return;
+
+      let isValid = true;
+      let errorMsg = '';
+
+      const value = parseFloat(sample[field]);
+
+      if (field === 'concentration') {
+        if (sample[field] && (isNaN(value) || value < 0 || value > 1000)) {
+          isValid = false;
+          errorMsg = '浓度范围: 0-1000';
+        }
+      } else if (field === 'od260280') {
+        if (sample[field] && (isNaN(value) || value < 1.6 || value > 2.2)) {
+          isValid = false;
+          errorMsg = '范围: 1.6-2.2';
+        }
+      } else if (field === 'od260230') {
+        if (sample[field] && (isNaN(value) || value < 1.8 || value > 2.5)) {
+          isValid = false;
+          errorMsg = '范围: 1.8-2.5';
+        }
+      }
+
+      if (isValid) {
+        input.classList.remove('error');
+        input.classList.add('success');
+        delete sample.errors[field];
+      } else {
+        input.classList.remove('success');
+        input.classList.add('error');
+        sample.errors[field] = errorMsg;
+        input.title = errorMsg;
+      }
+
+      updateRowStatus(index);
+    }
+
+    // 更新行状态
+    function updateRowStatus(index) {
+      const row = document.getElementById(`row-${index}`);
+      const sample = samples[index];
+
+      if (Object.keys(sample.errors).length > 0) {
+        row.classList.add('has-error');
+        row.classList.remove('completed');
+      } else if (sample.concentration && sample.operator && sample.operationTime) {
+        row.classList.add('completed');
+        row.classList.remove('has-error');
+        sample.completed = true;
+      } else {
+        row.classList.remove('has-error', 'completed');
+        sample.completed = false;
+      }
+    }
+
+    // 更新进度
+    function updateProgress() {
+      const completed = samples.filter(s => s.completed).length;
+      document.getElementById('progressText').textContent = `${completed}/96`;
+    }
+
+    // 搜索
+    function handleSearch() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+
+      samples.forEach((sample, index) => {
+        const row = document.getElementById(`row-${index}`);
+        const match = sample.sampleId.toLowerCase().includes(keyword) ||
+                     sample.position.toLowerCase().includes(keyword);
+
+        if (match || !keyword) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (keyword) {
+        const firstMatch = samples.findIndex(s =>
+          s.sampleId.toLowerCase().includes(keyword) ||
+          s.position.toLowerCase().includes(keyword)
+        );
+
+        if (firstMatch >= 0) {
+          const row = document.getElementById(`row-${firstMatch}`);
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    // 智能填充
+    function handleAutoFill() {
+      const now = new Date();
+      const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      samples.forEach((sample, index) => {
+        if (!sample.operationTime) {
+          sample.operationTime = timeString;
+        }
+        if (!sample.operator) {
+          sample.operator = '李四';
+        }
+      });
+
+      renderTable();
+      showMessage('已自动填充操作人和操作时间', 'success');
+    }
+
+    // 验证全部
+    function handleValidateAll() {
+      let errorCount = 0;
+
+      samples.forEach((sample, index) => {
+        validateCell(index, 'concentration');
+        validateCell(index, 'od260280');
+        validateCell(index, 'od260230');
+
+        if (Object.keys(sample.errors).length > 0) {
+          errorCount++;
+        }
+      });
+
+      if (errorCount === 0) {
+        showMessage('全部数据验证通过!', 'success');
+      } else {
+        showMessage(`发现 ${errorCount} 个样本存在错误，请修正`, 'error');
+      }
+    }
+
+    // 复制行
+    function handleCopyRow(index) {
+      const sample = samples[index];
+      const data = {
+        concentration: sample.concentration,
+        od260280: sample.od260280,
+        od260230: sample.od260230,
+        operator: sample.operator,
+        operationTime: sample.operationTime,
+        remark: sample.remark
+      };
+
+      storage.set('copied_row', data);
+      showMessage('已复制行数据，可粘贴到其他行', 'success');
+    }
+
+    // 清空行
+    function handleClearRow(index) {
+      if (confirm('确定要清空这一行的数据吗?')) {
+        samples[index].concentration = '';
+        samples[index].waterVolume = '';
+        samples[index].od260280 = '';
+        samples[index].od260230 = '';
+        samples[index].operator = '';
+        samples[index].operationTime = '';
+        samples[index].remark = '';
+        samples[index].errors = {};
+        samples[index].completed = false;
+
+        renderTable();
+        showMessage('已清空行数据', 'info');
+      }
+    }
+
+    // 保存草稿
+    function handleSaveDraft() {
+      storage.set('batch_draft', samples);
+      showMessage('草稿已保存', 'success');
+    }
+
+    // 清空全部
+    function handleClearAll() {
+      if (confirm('确定要清空所有数据吗? 此操作不可恢复!')) {
+        samples.forEach(sample => {
+          sample.concentration = '';
+          sample.waterVolume = '';
+          sample.od260280 = '';
+          sample.od260230 = '';
+          sample.operator = '';
+          sample.operationTime = '';
+          sample.remark = '';
+          sample.errors = {};
+          sample.completed = false;
+        });
+
+        renderTable();
+        storage.remove('batch_draft');
+        showMessage('已清空所有数据', 'info');
+      }
+    }
+
+    // 导出Excel
+    function handleExportExcel() {
+      showMessage('正在导出Excel...', 'info');
+
+      setTimeout(() => {
+        const data = samples.map(s => ({
+          '序号': s.index,
+          '样本ID': s.sampleId,
+          '孔位': s.position,
+          '核酸浓度': s.concentration,
+          '补ddH₂O': s.waterVolume,
+          'OD260/280': s.od260280,
+          'OD260/230': s.od260230,
+          '操作人': s.operator,
+          '操作时间': s.operationTime,
+          '备注': s.remark
+        }));
+
+        console.log('导出数据:', data);
+        showMessage('Excel导出成功!', 'success');
+      }, 1000);
+    }
+
+    // 批量提交
+    function handleBatchSubmit() {
+      // 验证必填字段
+      const incomplete = samples.filter(s => !s.concentration || !s.operator || !s.operationTime);
+      const hasErrors = samples.filter(s => Object.keys(s.errors).length > 0);
+
+      if (hasErrors.length > 0) {
+        showMessage(`发现 ${hasErrors.length} 个样本存在错误，请先修正`, 'error');
+        return;
+      }
+
+      if (incomplete.length > 0) {
+        if (!confirm(`还有 ${incomplete.length} 个样本未完成录入，确定要提交吗?`)) {
+          return;
+        }
+      }
+
+      showMessage('正在批量提交数据...', 'info');
+
+      setTimeout(() => {
+        storage.remove('batch_draft');
+        showMessage('批量提交成功! 96个样本数据已保存', 'success');
+
+        setTimeout(() => {
+          window.location.href = 'sample-list.html';
+        }, 1500);
+      }, 1500);
+    }
+
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+      const activeElement = document.activeElement;
+
+      if (activeElement.classList.contains('cell-input')) {
+        const index = parseInt(activeElement.dataset.index);
+        const field = activeElement.dataset.field;
+
+        if (e.key === 'Tab' && !e.shiftKey) {
+          e.preventDefault();
+          // 跳到下一个输入框
+          const nextInput = activeElement.closest('td').nextElementSibling?.querySelector('.cell-input');
+          if (nextInput && !nextInput.disabled) {
+            nextInput.focus();
+            nextInput.select();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          // 跳到下一行相同字段
+          const nextRow = document.getElementById(`row-${index + 1}`);
+          if (nextRow) {
+            const nextInput = nextRow.querySelector(`[data-field="${field}"]`);
+            if (nextInput && !nextInput.disabled) {
+              nextInput.focus();
+              nextInput.select();
+            }
+          }
+        }
+      }
+    });
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 恢复草稿
+      const draft = storage.get('batch_draft');
+      if (draft && draft.length === 96) {
+        if (confirm('检测到未保存的草稿，是否恢复?')) {
+          draft.forEach((d, i) => {
+            Object.assign(samples[i], d);
+          });
+          showMessage('草稿已恢复', 'info');
+        }
+      }
+
+      renderTable();
+    });
+  </script>
+</body>
+</html>

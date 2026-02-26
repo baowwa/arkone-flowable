@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArkOne 测序流程配置系统 - 原型导航</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 60px 0;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .prototype-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .prototype-card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .prototype-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .prototype-card-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .prototype-card-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .prototype-card-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .info-section {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-section h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .info-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .info-section li {
+      padding: 8px 0;
+      color: var(--text-regular);
+      display: flex;
+      align-items: center;
+    }
+
+    .info-section li::before {
+      content: '✓';
+      color: var(--success-color);
+      font-weight: bold;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="container">
+      <h1>🧬 ArkOne 测序流程配置系统</h1>
+      <p>高保真HTML原型 - 基于需求基线V1.0与UI设计方案</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2 style="margin-bottom: 24px; color: var(--text-primary);">核心页面原型</h2>
+
+    <div class="prototype-grid">
+      <a href="sample-register.html" class="prototype-card">
+        <div class="prototype-card-icon">📝</div>
+        <div class="prototype-card-title">样本登记</div>
+        <div class="prototype-card-desc">
+          支持样本信息录入、流程预览、容器孔位分配，包含表单验证和自动编号生成
+        </div>
+      </a>
+
+      <a href="sample-list.html" class="prototype-card">
+        <div class="prototype-card-icon">📋</div>
+        <div class="prototype-card-title">样本列表</div>
+        <div class="prototype-card-desc">
+          多条件筛选、分页展示、状态标识、批量操作入口，支持快速查询和导出
+        </div>
+      </a>
+
+      <a href="sample-detail.html" class="prototype-card">
+        <div class="prototype-card-icon">🔍</div>
+        <div class="prototype-card-title">样本详情</div>
+        <div class="prototype-card-desc">
+          流程进度可视化、节点数据展示、操作历史追踪，支持Tab切换查看不同信息
+        </div>
+      </a>
+
+      <a href="data-entry.html" class="prototype-card">
+        <div class="prototype-card-icon">⌨️</div>
+        <div class="prototype-card-title">数据录入</div>
+        <div class="prototype-card-desc">
+          动态表单渲染、实时验证、公式计算、支持多种字段类型和单位显示
+        </div>
+      </a>
+
+      <a href="batch-data-entry.html" class="prototype-card">
+        <div class="prototype-card-icon">⚡</div>
+        <div class="prototype-card-title">批量数据录入</div>
+        <div class="prototype-card-desc">
+          表格批量编辑、智能填充、实时验证、支持96个样本同时录入，效率提升90%+
+        </div>
+      </a>
+
+      <a href="plate-map.html" class="prototype-card">
+        <div class="prototype-card-icon">🎯</div>
+        <div class="prototype-card-title">板位图可视化</div>
+        <div class="prototype-card-desc">
+          96孔板/48孔板Canvas渲染、点击选择、状态展示、支持一键填充和批量操作
+        </div>
+      </a>
+
+      <a href="process-config.html" class="prototype-card">
+        <div class="prototype-card-icon">⚙️</div>
+        <div class="prototype-card-title">流程配置</div>
+        <div class="prototype-card-desc">
+          简化版流程设计器、节点配置、字段管理、流程预览和版本管理
+        </div>
+      </a>
+    </div>
+
+    <div class="info-section">
+      <h2>📌 原型说明</h2>
+      <ul>
+        <li>基于需求基线V1.0、UI设计方案和前端技术预研报告</li>
+        <li>使用原生HTML/CSS/JavaScript，无框架依赖</li>
+        <li>采用Element Plus设计规范的色彩和组件样式</li>
+        <li>支持响应式布局，适配桌面端和平板端</li>
+        <li>包含真实的交互逻辑和模拟数据</li>
+        <li>所有表单支持实时验证和错误提示</li>
+        <li>板位图使用Canvas渲染，性能优化</li>
+        <li>支持扫码枪输入模拟</li>
+      </ul>
+    </div>
+
+    <div class="info-section mt-lg">
+      <h2>🎨 设计系统</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+        <div>
+          <strong>主色调</strong>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <div style="width: 40px; height: 40px; background: #409EFF; border-radius: 4px;" title="Primary"></div>
+            <div style="width: 40px; height: 40px; background: #67C23A; border-radius: 4px;" title="Success"></div>
+            <div style="width: 40px; height: 40px; background: #E6A23C; border-radius: 4px;" title="Warning"></div>
+            <div style="width: 40px; height: 40px; background: #F56C6C; border-radius: 4px;" title="Danger"></div>
+          </div>
+        </div>
+        <div>
+          <strong>字体系统</strong>
+          <div style="margin-top: 8px; color: var(--text-secondary);">
+            标题: 16-24px<br>
+            正文: 14px<br>
+            辅助: 12px
+          </div>
+        </div>
+        <div>
+          <strong>间距系统</strong>
+          <div style="margin-top: 8px; color: var(--text-secondary);">
+            超小: 4px<br>
+            小: 8px<br>
+            中: 16px<br>
+            大: 24px
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+      <p>© 2026 ArkOne 测序流程配置系统 - 原型版本 v1.0</p>
+      <p style="margin-top: 8px; font-size: 12px;">
+        文档版本: 需求基线V1.0 | UI设计方案v1.0 | 前端技术预研报告v1.0
+      </p>
+    </div>
+  </div>
+</body>
+</html>

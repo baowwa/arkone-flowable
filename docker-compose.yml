@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: arkone-postgres
+    environment:
+      POSTGRES_DB: arkone_flowable
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db:/docker-entrypoint-initdb.d
+    networks:
+      - arkone-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d arkone_flowable"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: arkone-redis
+    command: redis-server --requirepass 123456
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - arkone-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ 消息队列
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: arkone-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: root
+      RABBITMQ_DEFAULT_PASS: 123456
+    ports:
+      - "5672:5672"   # AMQP端口
+      - "15672:15672" # 管理界面
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - arkone-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: arkone-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: 123456
+    ports:
+      - "9000:9000"   # API端口
+      - "9001:9001"   # 控制台
+    volumes:
+      - minio_data:/data
+    networks:
+      - arkone-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  arkone-network:
+    driver: bridge

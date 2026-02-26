@@ -1,0 +1,407 @@
+{
+  "info": {
+    "name": "ArkOne Flowable API",
+    "description": "ArkOne Flowable 测序流程管理系统 API 测试集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "11111111-1111-1111-1111-111111111111",
+      "type": "string"
+    },
+    {
+      "key": "containerId",
+      "value": "22222222-2222-2222-2222-222222222222",
+      "type": "string"
+    },
+    {
+      "key": "sampleId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. 健康检查",
+      "item": [
+        {
+          "name": "健康检查",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 样本管理",
+      "item": [
+        {
+          "name": "创建样本",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('sampleId', jsonData.data.id);",
+                  "        console.log('Sample ID saved: ' + jsonData.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sampleName\": \"测试样本-{{$timestamp}}\",\n  \"projectId\": \"{{projectId}}\",\n  \"sampleType\": \"plasmid_plate\",\n  \"containerId\": \"{{containerId}}\",\n  \"position\": \"A1\",\n  \"description\": \"Postman测试样本\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"]
+            }
+          }
+        },
+        {
+          "name": "获取样本详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples/{{sampleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples", "{{sampleId}}"]
+            }
+          }
+        },
+        {
+          "name": "查询样本列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples?current=1&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"],
+              "query": [
+                {
+                  "key": "current",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "查询样本列表 - 按类型筛选",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples?current=1&size=10&sampleType=plasmid_plate",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"],
+              "query": [
+                {
+                  "key": "current",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sampleType",
+                  "value": "plasmid_plate"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "查询样本列表 - 按状态筛选",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples?current=1&size=10&status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"],
+              "query": [
+                {
+                  "key": "current",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "更新样本状态",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples/{{sampleId}}/status?status=in_progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples", "{{sampleId}}", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "in_progress"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 批量操作",
+      "item": [
+        {
+          "name": "批量创建样本 - 10个",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"samples\": [\n    {\"sampleName\": \"批量样本-1\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A1\"},\n    {\"sampleName\": \"批量样本-2\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A2\"},\n    {\"sampleName\": \"批量样本-3\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A3\"},\n    {\"sampleName\": \"批量样本-4\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A4\"},\n    {\"sampleName\": \"批量样本-5\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A5\"},\n    {\"sampleName\": \"批量样本-6\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A6\"},\n    {\"sampleName\": \"批量样本-7\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A7\"},\n    {\"sampleName\": \"批量样本-8\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A8\"},\n    {\"sampleName\": \"批量样本-9\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A9\"},\n    {\"sampleName\": \"批量样本-10\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A10\"}\n  ],\n  \"failureMode\": \"partial\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "samples"]
+            }
+          }
+        },
+        {
+          "name": "批量创建样本 - 96个(完整板)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"samples\": [\n    {\"sampleName\": \"96孔板-A1\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A1\"},\n    {\"sampleName\": \"96孔板-A2\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A2\"},\n    {\"sampleName\": \"96孔板-A3\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A3\"},\n    {\"sampleName\": \"96孔板-A4\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A4\"},\n    {\"sampleName\": \"96孔板-A5\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A5\"},\n    {\"sampleName\": \"96孔板-A6\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A6\"},\n    {\"sampleName\": \"96孔板-A7\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A7\"},\n    {\"sampleName\": \"96孔板-A8\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A8\"},\n    {\"sampleName\": \"96孔板-A9\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A9\"},\n    {\"sampleName\": \"96孔板-A10\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A10\"},\n    {\"sampleName\": \"96孔板-A11\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A11\"},\n    {\"sampleName\": \"96孔板-A12\", \"projectId\": \"{{projectId}}\", \"sampleType\": \"plasmid_plate\", \"position\": \"A12\"}\n  ],\n  \"failureMode\": \"partial\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "samples"]
+            }
+          }
+        },
+        {
+          "name": "批量更新样本状态",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  \"sample-id-1\",\n  \"sample-id-2\",\n  \"sample-id-3\"\n]"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/samples/status?status=completed",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "samples", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 字段定义",
+      "item": [
+        {
+          "name": "获取节点字段定义 - 摇菌",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/fields/nodes/shake_culture",
+              "host": ["{{baseUrl}}"],
+              "path": ["fields", "nodes", "shake_culture"]
+            }
+          }
+        },
+        {
+          "name": "获取节点字段定义 - 核酸提取",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/fields/nodes/nucleic_acid_extraction",
+              "host": ["{{baseUrl}}"],
+              "path": ["fields", "nodes", "nucleic_acid_extraction"]
+            }
+          }
+        },
+        {
+          "name": "获取节点字段定义 - 样本前处理",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/fields/nodes/sample_preprocessing",
+              "host": ["{{baseUrl}}"],
+              "path": ["fields", "nodes", "sample_preprocessing"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 错误处理测试",
+      "item": [
+        {
+          "name": "错误 - 重复样本名称",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sampleName\": \"重复样本名称\",\n  \"projectId\": \"{{projectId}}\",\n  \"sampleType\": \"plasmid_plate\",\n  \"containerId\": \"{{containerId}}\",\n  \"position\": \"B1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"]
+            }
+          }
+        },
+        {
+          "name": "错误 - 孔位占用",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sampleName\": \"孔位冲突样本\",\n  \"projectId\": \"{{projectId}}\",\n  \"sampleType\": \"plasmid_plate\",\n  \"containerId\": \"{{containerId}}\",\n  \"position\": \"A1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"]
+            }
+          }
+        },
+        {
+          "name": "错误 - 必填字段缺失",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sampleName\": \"\",\n  \"projectId\": \"{{projectId}}\",\n  \"sampleType\": \"plasmid_plate\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/samples",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples"]
+            }
+          }
+        },
+        {
+          "name": "错误 - 无效状态",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples/{{sampleId}}/status?status=invalid_status",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples", "{{sampleId}}", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "invalid_status"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "错误 - 样本不存在",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/samples/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["samples", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

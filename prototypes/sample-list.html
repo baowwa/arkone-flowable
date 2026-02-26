@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>样本列表 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="index.html" class="btn btn-text">← 返回首页</a>
+        <h1 class="page-title">样本管理</h1>
+      </div>
+      <button class="btn btn-primary" onclick="window.location.href='sample-register.html'">
+        ➕ 新建样本
+      </button>
+    </div>
+
+    <!-- 筛选条件 -->
+    <div class="filter-section">
+      <div class="filter-row">
+        <div class="form-item">
+          <label class="form-label">样本编号</label>
+          <input type="text" class="form-input" id="filterSampleId" placeholder="请输入样本编号">
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">检验项目</label>
+          <select class="form-select" id="filterProject">
+            <option value="">全部</option>
+            <option value="全质粒测序">全质粒测序</option>
+            <option value="PCR产物测序">PCR产物测序</option>
+          </select>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">状态</label>
+          <select class="form-select" id="filterStatus">
+            <option value="">全部</option>
+            <option value="in_progress">进行中</option>
+            <option value="completed">已完成</option>
+            <option value="paused">暂停</option>
+            <option value="exception">异常</option>
+          </select>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">提交人</label>
+          <input type="text" class="form-input" id="filterSubmitter" placeholder="请输入提交人">
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <div class="form-item">
+          <label class="form-label">开始时间</label>
+          <input type="date" class="form-input" id="filterStartDate" value="2026-02-01">
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">结束时间</label>
+          <input type="date" class="form-input" id="filterEndDate" value="2026-02-24">
+        </div>
+
+        <div class="form-item" style="display: flex; align-items: flex-end; gap: 8px;">
+          <button class="btn btn-primary" onclick="handleSearch()">🔍 搜索</button>
+          <button class="btn btn-default" onclick="handleReset()">🔄 重置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="table-container">
+      <div class="table-toolbar">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-default" onclick="handleBatchOperation()">
+            批量操作 ▼
+          </button>
+          <button class="btn btn-default" onclick="handleExport()">
+            📤 导出Excel
+          </button>
+        </div>
+        <div class="pagination-info">
+          共 <strong>156</strong> 条记录
+        </div>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">
+              <input type="checkbox" id="selectAll" onchange="handleSelectAll()">
+            </th>
+            <th>样本编号</th>
+            <th>样本名称</th>
+            <th>检验项目</th>
+            <th>样本类型</th>
+            <th>当前节点</th>
+            <th>状态</th>
+            <th>提交人</th>
+            <th>提交时间</th>
+            <th style="width: 120px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="sampleTableBody">
+          <!-- 数据将通过JavaScript动态生成 -->
+        </tbody>
+      </table>
+
+      <!-- 分页 -->
+      <div class="pagination">
+        <div class="pagination-info">
+          显示第 1-10 条，共 156 条
+        </div>
+        <div class="pagination-controls">
+          <button class="pagination-btn" disabled>上一页</button>
+          <button class="pagination-btn active">1</button>
+          <button class="pagination-btn">2</button>
+          <button class="pagination-btn">3</button>
+          <button class="pagination-btn">4</button>
+          <button class="pagination-btn">5</button>
+          <span style="padding: 0 8px;">...</span>
+          <button class="pagination-btn">16</button>
+          <button class="pagination-btn">下一页</button>
+          <select class="form-select" style="width: 100px; margin-left: 16px;">
+            <option value="10">10条/页</option>
+            <option value="20">20条/页</option>
+            <option value="50">50条/页</option>
+            <option value="100">100条/页</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // 生成更多模拟数据
+    function generateMoreSamples() {
+      const samples = [...mockData.samples];
+      const projects = ['全质粒测序', 'PCR产物测序'];
+      const statuses = ['in_progress', 'completed', 'paused', 'exception'];
+      const nodes = ['摇菌', '核酸提取', '样本前处理', '文库构建', '上机测序', '已完成'];
+      const submitters = ['张三', '李四', '王五', '赵六', '钱七'];
+
+      for (let i = 5; i <= 20; i++) {
+        const project = projects[Math.floor(Math.random() * projects.length)];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+        samples.push({
+          id: `AK202602${String(24 - Math.floor(i / 10)).padStart(2, '0')}${String(i).padStart(3, '0')}`,
+          name: `Sample-${String(i).padStart(2, '0')}`,
+          project: project,
+          type: project === '全质粒测序' ? '平板样本' : 'PCR原液',
+          currentNode: status === 'completed' ? '已完成' : nodes[Math.floor(Math.random() * (nodes.length - 1))],
+          status: status,
+          submitter: submitters[Math.floor(Math.random() * submitters.length)],
+          submitTime: `2026-02-${String(24 - Math.floor(i / 10)).padStart(2, '0')} ${String(9 + Math.floor(Math.random() * 8)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`
+        });
+      }
+
+      return samples;
+    }
+
+    // 渲染表格
+    function renderTable(samples) {
+      const tbody = document.getElementById('sampleTableBody');
+      tbody.innerHTML = '';
+
+      samples.forEach(sample => {
+        const tr = document.createElement('tr');
+
+        // 状态标签
+        let statusClass = '';
+        let statusText = '';
+        switch (sample.status) {
+          case 'in_progress':
+            statusClass = 'in-progress';
+            statusText = '进行中';
+            break;
+          case 'completed':
+            statusClass = 'completed';
+            statusText = '已完成';
+            break;
+          case 'paused':
+            statusClass = 'paused';
+            statusText = '暂停';
+            break;
+          case 'exception':
+            statusClass = 'exception';
+            statusText = '异常';
+            break;
+        }
+
+        tr.innerHTML = `
+          <td>
+            <input type="checkbox" class="sample-checkbox" value="${sample.id}">
+          </td>
+          <td>
+            <a href="sample-detail.html?id=${sample.id}" style="color: var(--primary-color); text-decoration: none;">
+              ${sample.id}
+            </a>
+          </td>
+          <td>${sample.name}</td>
+          <td>${sample.project}</td>
+          <td>${sample.type}</td>
+          <td>${sample.currentNode}</td>
+          <td>
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </td>
+          <td>${sample.submitter}</td>
+          <td>${sample.submitTime}</td>
+          <td>
+            <button class="btn btn-text" onclick="viewSample('${sample.id}')">查看</button>
+            <button class="btn btn-text" onclick="editSample('${sample.id}')">编辑</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      const samples = generateMoreSamples();
+      renderTable(samples.slice(0, 10)); // 只显示前10条
+    });
+
+    // 全选
+    function handleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.sample-checkbox');
+
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+      });
+    }
+
+    // 搜索
+    function handleSearch() {
+      const sampleId = document.getElementById('filterSampleId').value;
+      const project = document.getElementById('filterProject').value;
+      const status = document.getElementById('filterStatus').value;
+      const submitter = document.getElementById('filterSubmitter').value;
+
+      console.log('搜索条件:', { sampleId, project, status, submitter });
+      showMessage('搜索功能开发中...', 'info');
+
+      // 实际项目中这里会调用API进行筛选
+      const samples = generateMoreSamples();
+      let filtered = samples;
+
+      if (sampleId) {
+        filtered = filtered.filter(s => s.id.includes(sampleId));
+      }
+      if (project) {
+        filtered = filtered.filter(s => s.project === project);
+      }
+      if (status) {
+        filtered = filtered.filter(s => s.status === status);
+      }
+      if (submitter) {
+        filtered = filtered.filter(s => s.submitter.includes(submitter));
+      }
+
+      renderTable(filtered.slice(0, 10));
+      showMessage(`找到 ${filtered.length} 条记录`, 'success');
+    }
+
+    // 重置
+    function handleReset() {
+      document.getElementById('filterSampleId').value = '';
+      document.getElementById('filterProject').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterSubmitter').value = '';
+      document.getElementById('filterStartDate').value = '2026-02-01';
+      document.getElementById('filterEndDate').value = '2026-02-24';
+
+      const samples = generateMoreSamples();
+      renderTable(samples.slice(0, 10));
+      showMessage('筛选条件已重置', 'info');
+    }
+
+    // 批量操作
+    function handleBatchOperation() {
+      const checked = document.querySelectorAll('.sample-checkbox:checked');
+
+      if (checked.length === 0) {
+        showMessage('请先选择要操作的样本', 'warning');
+        return;
+      }
+
+      const ids = Array.from(checked).map(cb => cb.value);
+      console.log('批量操作样本:', ids);
+      showMessage(`已选择 ${ids.length} 个样本`, 'info');
+    }
+
+    // 导出
+    function handleExport() {
+      const samples = generateMoreSamples();
+      exportToExcel(samples, '样本列表.xlsx');
+    }
+
+    // 查看样本
+    function viewSample(id) {
+      window.location.href = `sample-detail.html?id=${id}`;
+    }
+
+    // 编辑样本
+    function editSample(id) {
+      showMessage(`编辑样本 ${id}`, 'info');
+      // 实际项目中这里会跳转到编辑页面
+    }
+  </script>
+</body>
+</html>

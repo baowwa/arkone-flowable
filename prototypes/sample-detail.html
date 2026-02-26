@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>样本详情 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .detail-item {
+      display: flex;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .detail-label {
+      font-weight: 500;
+      color: var(--text-regular);
+      width: 120px;
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-bottom: 24px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .timeline-item::after {
+      content: '';
+      position: absolute;
+      left: -21px;
+      top: 20px;
+      width: 2px;
+      height: calc(100% - 12px);
+      background: var(--border-color);
+    }
+
+    .timeline-item:last-child::after {
+      display: none;
+    }
+
+    .timeline-item.completed::before {
+      background: var(--success-color);
+      box-shadow: 0 0 0 2px var(--success-color);
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .timeline-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .timeline-content {
+      background: var(--bg-color);
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--text-regular);
+    }
+
+    .node-data {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .node-header {
+      padding: 12px 16px;
+      background: var(--bg-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .node-header:hover {
+      background: #E8E8E8;
+    }
+
+    .node-title {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .node-body {
+      padding: 16px;
+      display: none;
+    }
+
+    .node-body.expanded {
+      display: block;
+    }
+
+    .node-field {
+      display: flex;
+      padding: 8px 0;
+      border-bottom: 1px solid #F5F5F5;
+    }
+
+    .node-field:last-child {
+      border-bottom: none;
+    }
+
+    .node-field-label {
+      width: 150px;
+      color: var(--text-regular);
+      flex-shrink: 0;
+    }
+
+    .node-field-value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="sample-list.html" class="btn btn-text">← 返回列表</a>
+        <h1 class="page-title">样本详情: <span id="sampleId">AK20260224001</span></h1>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-default" onclick="handleEdit()">编辑</button>
+        <button class="btn btn-primary" onclick="handleProcess()">开始处理</button>
+      </div>
+    </div>
+
+    <!-- 标签页 -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('basic')">基本信息</div>
+      <div class="tab" onclick="switchTab('progress')">流程进度</div>
+      <div class="tab" onclick="switchTab('history')">操作历史</div>
+      <div class="tab" onclick="switchTab('data')">数据记录</div>
+    </div>
+
+    <!-- 基本信息 -->
+    <div id="tab-basic" class="card">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">样本编号:</div>
+          <div class="detail-value">AK20260224001</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">样本名称:</div>
+          <div class="detail-value">Sample-01</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">检验项目:</div>
+          <div class="detail-value">全质粒测序</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">样本类型:</div>
+          <div class="detail-value">平板样本</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">当前状态:</div>
+          <div class="detail-value">
+            <span class="status-badge in-progress">进行中</span>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">当前节点:</div>
+          <div class="detail-value">样本前处理</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">提交人:</div>
+          <div class="detail-value">张三</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">提交时间:</div>
+          <div class="detail-value">2026-02-24 09:30</div>
+        </div>
+      </div>
+
+      <div class="detail-item" style="grid-column: 1 / -1;">
+        <div class="detail-label">备注:</div>
+        <div class="detail-value">测试样本，用于验证流程</div>
+      </div>
+    </div>
+
+    <!-- 流程进度 -->
+    <div id="tab-progress" class="card" style="display: none;">
+      <h3 style="margin-bottom: 24px; color: var(--text-primary);">流程进度</h3>
+
+      <div class="progress-bar">
+        <div class="progress-step completed">
+          <div class="progress-icon">✓</div>
+          <div class="progress-label">摇菌</div>
+        </div>
+        <div class="progress-step completed">
+          <div class="progress-icon">✓</div>
+          <div class="progress-label">核酸提取</div>
+        </div>
+        <div class="progress-step active">
+          <div class="progress-icon">●</div>
+          <div class="progress-label">样本前处理</div>
+        </div>
+        <div class="progress-step">
+          <div class="progress-icon">4</div>
+          <div class="progress-label">文库构建</div>
+        </div>
+        <div class="progress-step">
+          <div class="progress-icon">5</div>
+          <div class="progress-label">上机测序</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 32px; padding: 20px; background: #F0F9FF; border-left: 4px solid var(--primary-color); border-radius: 4px;">
+        <h4 style="margin-bottom: 12px; color: var(--primary-color);">当前节点: 样本前处理</h4>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">负责人:</div>
+            <div class="detail-value">李四</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">开始时间:</div>
+            <div class="detail-value">2026-02-24 14:20</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">预计完成:</div>
+            <div class="detail-value">2026-02-24 16:00</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">已用时:</div>
+            <div class="detail-value">1小时40分钟</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作历史 -->
+    <div id="tab-history" class="card" style="display: none;">
+      <h3 style="margin-bottom: 24px; color: var(--text-primary);">操作历史</h3>
+
+      <div class="timeline">
+        <div class="timeline-item completed">
+          <div class="timeline-header">
+            <div class="timeline-title">样本前处理 - 开始</div>
+            <div class="timeline-time">2026-02-24 14:20</div>
+          </div>
+          <div class="timeline-content">
+            操作人: 李四<br>
+            操作: 开始处理节点
+          </div>
+        </div>
+
+        <div class="timeline-item completed">
+          <div class="timeline-header">
+            <div class="timeline-title">核酸提取 - 完成</div>
+            <div class="timeline-time">2026-02-24 12:00</div>
+          </div>
+          <div class="timeline-content">
+            操作人: 李四<br>
+            96孔板号: P096-001<br>
+            96孔板孔号: B03
+          </div>
+        </div>
+
+        <div class="timeline-item completed">
+          <div class="timeline-header">
+            <div class="timeline-title">核酸提取 - 开始</div>
+            <div class="timeline-time">2026-02-24 11:30</div>
+          </div>
+          <div class="timeline-content">
+            操作人: 李四<br>
+            操作: 开始处理节点
+          </div>
+        </div>
+
+        <div class="timeline-item completed">
+          <div class="timeline-header">
+            <div class="timeline-title">摇菌 - 完成</div>
+            <div class="timeline-time">2026-02-24 10:30</div>
+          </div>
+          <div class="timeline-content">
+            操作人: 王五<br>
+            48深孔板号: P001<br>
+            48深孔板孔号: A01<br>
+            摇菌开始时间: 2026-02-24 09:45<br>
+            摇菌截止时间: 2026-02-24 10:30
+          </div>
+        </div>
+
+        <div class="timeline-item completed">
+          <div class="timeline-header">
+            <div class="timeline-title">样本登记</div>
+            <div class="timeline-time">2026-02-24 09:30</div>
+          </div>
+          <div class="timeline-content">
+            操作人: 张三<br>
+            操作: 创建样本并启动流程
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据记录 -->
+    <div id="tab-data" class="card" style="display: none;">
+      <h3 style="margin-bottom: 24px; color: var(--text-primary);">节点数据记录</h3>
+
+      <div class="node-data">
+        <div class="node-header" onclick="toggleNode(this)">
+          <div>
+            <span class="node-title">▼ 摇菌</span>
+            <span class="status-badge completed" style="margin-left: 12px;">已完成</span>
+            <span style="margin-left: 12px; color: var(--text-secondary); font-size: 12px;">2026-02-24 10:30</span>
+          </div>
+        </div>
+        <div class="node-body expanded">
+          <div class="node-field">
+            <div class="node-field-label">48深孔板号:</div>
+            <div class="node-field-value">P001</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">48深孔板孔号:</div>
+            <div class="node-field-value">A01</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">摇菌开始时间:</div>
+            <div class="node-field-value">2026-02-24 09:45</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">摇菌截止时间:</div>
+            <div class="node-field-value">2026-02-24 10:30</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">操作人:</div>
+            <div class="node-field-value">王五</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="node-data">
+        <div class="node-header" onclick="toggleNode(this)">
+          <div>
+            <span class="node-title">▼ 核酸提取</span>
+            <span class="status-badge completed" style="margin-left: 12px;">已完成</span>
+            <span style="margin-left: 12px; color: var(--text-secondary); font-size: 12px;">2026-02-24 12:00</span>
+          </div>
+        </div>
+        <div class="node-body expanded">
+          <div class="node-field">
+            <div class="node-field-label">96孔板号:</div>
+            <div class="node-field-value">P096-001</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">96孔板孔号:</div>
+            <div class="node-field-value">B03</div>
+          </div>
+          <div class="node-field">
+            <div class="node-field-label">操作人:</div>
+            <div class="node-field-value">李四</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="node-data">
+        <div class="node-header" onclick="toggleNode(this)">
+          <div>
+            <span class="node-title">▶ 样本前处理</span>
+            <span class="status-badge in-progress" style="margin-left: 12px;">进行中</span>
+          </div>
+        </div>
+        <div class="node-body">
+          <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+            节点处理中，暂无数据
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // 获取URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const sampleId = urlParams.get('id') || 'AK20260224001';
+    document.getElementById('sampleId').textContent = sampleId;
+
+    // 切换标签页
+    function switchTab(tabName) {
+      // 隐藏所有标签页内容
+      document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        tab.style.display = 'none';
+      });
+
+      // 移除所有标签的active类
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // 显示选中的标签页
+      document.getElementById(`tab-${tabName}`).style.display = 'block';
+
+      // 添加active类到选中的标签
+      event.target.classList.add('active');
+    }
+
+    // 切换节点展开/折叠
+    function toggleNode(header) {
+      const body = header.nextElementSibling;
+      const title = header.querySelector('.node-title');
+
+      if (body.classList.contains('expanded')) {
+        body.classList.remove('expanded');
+        title.textContent = title.textContent.replace('▼', '▶');
+      } else {
+        body.classList.add('expanded');
+        title.textContent = title.textContent.replace('▶', '▼');
+      }
+    }
+
+    // 编辑
+    function handleEdit() {
+      showMessage('编辑功能开发中...', 'info');
+    }
+
+    // 开始处理
+    function handleProcess() {
+      window.location.href = `data-entry.html?id=${sampleId}`;
+    }
+  </script>
+</body>
+</html>

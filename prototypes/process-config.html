@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>流程配置 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .process-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr 320px;
+      gap: 16px;
+      height: calc(100vh - 200px);
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    .toolbar-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tool-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 2px dashed var(--border-color);
+      border-radius: 4px;
+      cursor: move;
+      transition: all 0.3s;
+      user-select: none;
+    }
+
+    .tool-item:hover {
+      border-color: var(--primary-color);
+      background: #F0F9FF;
+    }
+
+    .tool-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .tool-label {
+      font-size: 12px;
+      color: var(--text-regular);
+    }
+
+    .canvas-area {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: auto;
+      position: relative;
+    }
+
+    #processCanvas {
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: #FAFAFA;
+      cursor: grab;
+    }
+
+    #processCanvas:active {
+      cursor: grabbing;
+    }
+
+    .properties-panel {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .process-node {
+      position: absolute;
+      padding: 12px 20px;
+      background: white;
+      border: 2px solid var(--primary-color);
+      border-radius: 8px;
+      cursor: move;
+      user-select: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s;
+    }
+
+    .process-node:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .process-node.selected {
+      border-color: var(--success-color);
+      box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.2);
+    }
+
+    .process-node.start {
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--success-color);
+      color: white;
+      font-weight: 600;
+    }
+
+    .process-node.end {
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--danger-color);
+      color: white;
+      font-weight: 600;
+    }
+
+    .process-node.gateway {
+      width: 80px;
+      height: 80px;
+      background: var(--warning-color);
+      color: white;
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .process-node.gateway span {
+      transform: rotate(-45deg);
+    }
+
+    .node-connector {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--primary-color);
+      border: 2px solid white;
+      border-radius: 50%;
+      cursor: crosshair;
+    }
+
+    .field-list {
+      margin-top: 16px;
+    }
+
+    .field-item {
+      background: var(--bg-color);
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .field-info {
+      flex: 1;
+    }
+
+    .field-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .field-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .field-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .mini-canvas {
+      width: 100%;
+      height: 200px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: #FAFAFA;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="index.html" class="btn btn-text">← 返回首页</a>
+        <h1 class="page-title">流程配置</h1>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-default" onclick="handleSaveDraft()">💾 保存草稿</button>
+        <button class="btn btn-default" onclick="handlePreview()">👁️ 预览</button>
+        <button class="btn btn-primary" onclick="handlePublish()">🚀 发布</button>
+      </div>
+    </div>
+
+    <div class="process-layout">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <div class="toolbar-title">节点类型</div>
+
+        <div class="tool-item" draggable="true" data-type="start">
+          <div class="tool-icon">⭕</div>
+          <div class="tool-label">开始</div>
+        </div>
+
+        <div class="tool-item" draggable="true" data-type="task">
+          <div class="tool-icon">📋</div>
+          <div class="tool-label">任务</div>
+        </div>
+
+        <div class="tool-item" draggable="true" data-type="gateway">
+          <div class="tool-icon">◇</div>
+          <div class="tool-label">网关</div>
+        </div>
+
+        <div class="tool-item" draggable="true" data-type="end">
+          <div class="tool-icon">⏹️</div>
+          <div class="tool-label">结束</div>
+        </div>
+
+        <div class="toolbar-title" style="margin-top: 24px;">流程模板</div>
+
+        <button class="btn btn-default" onclick="loadTemplate('plasmid')" style="width: 100%; margin-bottom: 8px;">
+          全质粒测序
+        </button>
+        <button class="btn btn-default" onclick="loadTemplate('pcr')" style="width: 100%;">
+          PCR产物测序
+        </button>
+      </div>
+
+      <!-- 画布区域 -->
+      <div class="canvas-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <input type="text" class="form-input" placeholder="流程名称" value="全质粒测序流程" style="width: 300px;">
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-text" onclick="handleZoomIn()">🔍+</button>
+            <button class="btn btn-text" onclick="handleZoomOut()">🔍-</button>
+            <button class="btn btn-text" onclick="handleFitView()">⛶</button>
+            <button class="btn btn-text" onclick="handleClear()">🗑️</button>
+          </div>
+        </div>
+
+        <canvas id="processCanvas" width="900" height="600"></canvas>
+      </div>
+
+      <!-- 属性面板 -->
+      <div class="properties-panel">
+        <div class="panel-title">节点属性</div>
+
+        <div id="nodeProperties">
+          <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+            <p>点击节点查看属性</p>
+          </div>
+        </div>
+
+        <div id="nodePropertiesForm" style="display: none;">
+          <div class="form-item">
+            <label class="form-label required">节点名称</label>
+            <input type="text" class="form-input" id="nodeName" placeholder="请输入节点名称">
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">节点类型</label>
+            <select class="form-select" id="nodeType">
+              <option value="userTask">用户任务</option>
+              <option value="serviceTask">服务任务</option>
+              <option value="scriptTask">脚本任务</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">负责人</label>
+            <select class="form-select" id="assignee">
+              <option value="">请选择负责人</option>
+              <option value="tech">技术人员组</option>
+              <option value="qa">质量负责人</option>
+              <option value="manager">项目经理</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">超时设置</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="number" class="form-input" id="timeout" value="24" style="flex: 1;">
+              <span>小时</span>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">描述</label>
+            <textarea class="form-textarea" id="nodeDescription" placeholder="请输入节点描述"></textarea>
+          </div>
+
+          <button class="btn btn-primary" onclick="handleConfigFields()" style="width: 100%; margin-top: 16px;">
+            ⚙️ 配置字段
+          </button>
+
+          <div class="panel-title" style="margin-top: 24px;">字段配置</div>
+
+          <div class="field-list">
+            <div class="field-item">
+              <div class="field-info">
+                <div class="field-name">核酸浓度</div>
+                <div class="field-meta">类型: 数字 | 单位: ng/μL | 必填</div>
+              </div>
+              <div class="field-actions">
+                <button class="btn btn-text">✏️</button>
+                <button class="btn btn-text">🗑️</button>
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-info">
+                <div class="field-name">补ddH₂O</div>
+                <div class="field-meta">类型: 数字 | 单位: μL | 可选</div>
+              </div>
+              <div class="field-actions">
+                <button class="btn btn-text">✏️</button>
+                <button class="btn btn-text">🗑️</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-default" onclick="handleAddField()" style="width: 100%; margin-top: 12px;">
+            ➕ 添加字段
+          </button>
+        </div>
+
+        <div class="panel-title" style="margin-top: 24px;">流程预览</div>
+        <canvas class="mini-canvas" id="miniCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    const canvas = document.getElementById('processCanvas');
+    const ctx = canvas.getContext('2d');
+    const miniCanvas = document.getElementById('miniCanvas');
+    const miniCtx = miniCanvas.getContext('2d');
+
+    let nodes = [];
+    let connections = [];
+    let selectedNode = null;
+    let scale = 1;
+    let offset = { x: 0, y: 0 };
+
+    // 初始化示例流程
+    function initSampleProcess() {
+      nodes = [
+        { id: 1, type: 'start', x: 100, y: 100, label: '开始' },
+        { id: 2, type: 'task', x: 100, y: 200, label: '样本登记', width: 120, height: 60 },
+        { id: 3, type: 'gateway', x: 100, y: 320, label: '样本类型?', width: 80, height: 80 },
+        { id: 4, type: 'task', x: 50, y: 450, label: '摇菌', width: 100, height: 60 },
+        { id: 5, type: 'task', x: 200, y: 450, label: '核酸提取', width: 100, height: 60 },
+        { id: 6, type: 'task', x: 350, y: 450, label: '样本前处理', width: 120, height: 60 },
+        { id: 7, type: 'end', x: 200, y: 550, label: '结束' }
+      ];
+
+      connections = [
+        { from: 1, to: 2 },
+        { from: 2, to: 3 },
+        { from: 3, to: 4, label: '平板' },
+        { from: 3, to: 5, label: '直抽' },
+        { from: 3, to: 6, label: '质粒' },
+        { from: 4, to: 7 },
+        { from: 5, to: 7 },
+        { from: 6, to: 7 }
+      ];
+
+      drawProcess();
+      drawMiniMap();
+    }
+
+    // 绘制流程
+    function drawProcess() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(offset.x, offset.y);
+      ctx.scale(scale, scale);
+
+      // 绘制连接线
+      ctx.strokeStyle = '#909399';
+      ctx.lineWidth = 2;
+      connections.forEach(conn => {
+        const fromNode = nodes.find(n => n.id === conn.from);
+        const toNode = nodes.find(n => n.id === conn.to);
+
+        if (fromNode && toNode) {
+          ctx.beginPath();
+          ctx.moveTo(fromNode.x, fromNode.y);
+          ctx.lineTo(toNode.x, toNode.y);
+          ctx.stroke();
+
+          // 绘制箭头
+          const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
+          const arrowSize = 10;
+          ctx.beginPath();
+          ctx.moveTo(toNode.x, toNode.y);
+          ctx.lineTo(
+            toNode.x - arrowSize * Math.cos(angle - Math.PI / 6),
+            toNode.y - arrowSize * Math.sin(angle - Math.PI / 6)
+          );
+          ctx.lineTo(
+            toNode.x - arrowSize * Math.cos(angle + Math.PI / 6),
+            toNode.y - arrowSize * Math.sin(angle + Math.PI / 6)
+          );
+          ctx.closePath();
+          ctx.fillStyle = '#909399';
+          ctx.fill();
+
+          // 绘制标签
+          if (conn.label) {
+            const midX = (fromNode.x + toNode.x) / 2;
+            const midY = (fromNode.y + toNode.y) / 2;
+            ctx.fillStyle = '#606266';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(conn.label, midX, midY - 5);
+          }
+        }
+      });
+
+      // 绘制节点
+      nodes.forEach(node => {
+        if (node.type === 'start') {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 30, 0, Math.PI * 2);
+          ctx.fillStyle = selectedNode === node ? '#85CE61' : '#67C23A';
+          ctx.fill();
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.label, node.x, node.y);
+        } else if (node.type === 'end') {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 30, 0, Math.PI * 2);
+          ctx.fillStyle = selectedNode === node ? '#F78989' : '#F56C6C';
+          ctx.fill();
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.label, node.x, node.y);
+        } else if (node.type === 'gateway') {
+          ctx.save();
+          ctx.translate(node.x, node.y);
+          ctx.rotate(Math.PI / 4);
+
+          ctx.fillStyle = selectedNode === node ? '#F0C78A' : '#E6A23C';
+          ctx.fillRect(-40, -40, 80, 80);
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(-40, -40, 80, 80);
+
+          ctx.restore();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.label, node.x, node.y);
+        } else {
+          const width = node.width || 120;
+          const height = node.height || 60;
+
+          ctx.fillStyle = selectedNode === node ? '#A0CFFF' : '#409EFF';
+          ctx.fillRect(node.x - width / 2, node.y - height / 2, width, height);
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(node.x - width / 2, node.y - height / 2, width, height);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.label, node.x, node.y);
+        }
+      });
+
+      ctx.restore();
+    }
+
+    // 绘制缩略图
+    function drawMiniMap() {
+      const scale = 0.2;
+      miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+
+      miniCtx.save();
+      miniCtx.scale(scale, scale);
+
+      // 绘制连接线
+      miniCtx.strokeStyle = '#DCDFE6';
+      miniCtx.lineWidth = 2;
+      connections.forEach(conn => {
+        const fromNode = nodes.find(n => n.id === conn.from);
+        const toNode = nodes.find(n => n.id === conn.to);
+
+        if (fromNode && toNode) {
+          miniCtx.beginPath();
+          miniCtx.moveTo(fromNode.x, fromNode.y);
+          miniCtx.lineTo(toNode.x, toNode.y);
+          miniCtx.stroke();
+        }
+      });
+
+      // 绘制节点
+      nodes.forEach(node => {
+        if (node.type === 'start' || node.type === 'end') {
+          miniCtx.beginPath();
+          miniCtx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+          miniCtx.fillStyle = node.type === 'start' ? '#67C23A' : '#F56C6C';
+          miniCtx.fill();
+        } else if (node.type === 'gateway') {
+          miniCtx.save();
+          miniCtx.translate(node.x, node.y);
+          miniCtx.rotate(Math.PI / 4);
+          miniCtx.fillStyle = '#E6A23C';
+          miniCtx.fillRect(-20, -20, 40, 40);
+          miniCtx.restore();
+        } else {
+          const width = (node.width || 120) / 2;
+          const height = (node.height || 60) / 2;
+          miniCtx.fillStyle = '#409EFF';
+          miniCtx.fillRect(node.x - width / 2, node.y - height / 2, width, height);
+        }
+      });
+
+      miniCtx.restore();
+    }
+
+    // 点击节点
+    canvas.addEventListener('click', (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left - offset.x) / scale;
+      const y = (event.clientY - rect.top - offset.y) / scale;
+
+      selectedNode = null;
+
+      for (let node of nodes) {
+        let hit = false;
+
+        if (node.type === 'start' || node.type === 'end') {
+          const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+          hit = distance <= 30;
+        } else if (node.type === 'gateway') {
+          hit = Math.abs(x - node.x) <= 40 && Math.abs(y - node.y) <= 40;
+        } else {
+          const width = node.width || 120;
+          const height = node.height || 60;
+          hit = x >= node.x - width / 2 && x <= node.x + width / 2 &&
+                y >= node.y - height / 2 && y <= node.y + height / 2;
+        }
+
+        if (hit) {
+          selectedNode = node;
+          showNodeProperties(node);
+          break;
+        }
+      }
+
+      drawProcess();
+    });
+
+    // 显示节点属性
+    function showNodeProperties(node) {
+      document.getElementById('nodeProperties').style.display = 'none';
+      document.getElementById('nodePropertiesForm').style.display = 'block';
+      document.getElementById('nodeName').value = node.label;
+    }
+
+    // 加载模板
+    function loadTemplate(type) {
+      if (type === 'plasmid') {
+        showMessage('已加载全质粒测序流程模板', 'success');
+        initSampleProcess();
+      } else {
+        showMessage('已加载PCR产物测序流程模板', 'success');
+      }
+    }
+
+    // 放大
+    function handleZoomIn() {
+      scale = Math.min(scale + 0.1, 2);
+      drawProcess();
+    }
+
+    // 缩小
+    function handleZoomOut() {
+      scale = Math.max(scale - 0.1, 0.5);
+      drawProcess();
+    }
+
+    // 适应视图
+    function handleFitView() {
+      scale = 1;
+      offset = { x: 0, y: 0 };
+      drawProcess();
+    }
+
+    // 清空
+    function handleClear() {
+      if (confirm('确定要清空画布吗？')) {
+        nodes = [];
+        connections = [];
+        selectedNode = null;
+        drawProcess();
+        drawMiniMap();
+      }
+    }
+
+    // 保存草稿
+    function handleSaveDraft() {
+      showMessage('流程草稿已保存', 'success');
+    }
+
+    // 预览
+    function handlePreview() {
+      showMessage('预览功能开发中...', 'info');
+    }
+
+    // 发布
+    function handlePublish() {
+      if (confirm('确定要发布此流程吗？发布后将立即生效。')) {
+        showMessage('流程发布成功!', 'success');
+      }
+    }
+
+    // 配置字段
+    function handleConfigFields() {
+      showMessage('字段配置功能开发中...', 'info');
+    }
+
+    // 添加字段
+    function handleAddField() {
+      showMessage('添加字段功能开发中...', 'info');
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      initSampleProcess();
+    });
+  </script>
+</body>
+</html>

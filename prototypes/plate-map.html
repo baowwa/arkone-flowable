@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>板位图可视化 - ArkOne 测序流程配置系统</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .plate-container {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .plate-canvas-wrapper {
+      flex: 1;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .plate-info-panel {
+      width: 320px;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #plateCanvas {
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-label {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .info-value {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .selected-position {
+      background: #F0F9FF;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      border: 2px solid var(--primary-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-color);
+      padding: 12px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <a href="index.html" class="btn btn-text">← 返回首页</a>
+        <h1 class="page-title">板位图可视化</h1>
+      </div>
+      <div class="btn-group">
+        <select class="form-select" id="containerSelect" onchange="handleContainerChange()" style="width: 200px;">
+          <option value="">选择容器</option>
+          <option value="P096-001" selected>P096-001 (96孔板)</option>
+          <option value="P096-002">P096-002 (96孔板)</option>
+          <option value="P048-001">P048-001 (48孔板)</option>
+        </select>
+        <button class="btn btn-default" onclick="handleRefresh()">🔄 刷新</button>
+        <button class="btn btn-primary" onclick="handleExport()">📤 导出</button>
+      </div>
+    </div>
+
+    <div class="plate-container">
+      <!-- 板位图画布 -->
+      <div class="plate-canvas-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <h3 style="margin: 0; color: var(--text-primary);">96孔板 - P096-001</h3>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 14px;">
+              使用率: <strong style="color: var(--primary-color);">45/96 (46.9%)</strong>
+            </p>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-text" onclick="handleZoomIn()">🔍+</button>
+            <button class="btn btn-text" onclick="handleZoomOut()">🔍-</button>
+            <button class="btn btn-text" onclick="handleReset()">↻</button>
+          </div>
+        </div>
+
+        <canvas id="plateCanvas" width="800" height="600"></canvas>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #F5F7FA;"></div>
+            <span>空闲</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #409EFF;"></div>
+            <span>已使用</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #67C23A;"></div>
+            <span>当前选中</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #E6A23C;"></div>
+            <span>异常</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 信息面板 -->
+      <div class="plate-info-panel">
+        <h3 style="margin: 0 0 16px 0; color: var(--text-primary);">容器信息</h3>
+
+        <div class="info-row">
+          <div class="info-label">容器编号:</div>
+          <div class="info-value">P096-001</div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-label">容器类型:</div>
+          <div class="info-value">96孔板</div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-label">创建时间:</div>
+          <div class="info-value">2026-02-20</div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">45</div>
+            <div class="stat-label">已使用</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">51</div>
+            <div class="stat-label">空闲</div>
+          </div>
+        </div>
+
+        <!-- 数据录入模式 -->
+        <div style="margin-top: 24px; padding: 16px; background: #F0F9FF; border-radius: 8px; border: 2px solid var(--primary-color);">
+          <h4 style="margin: 0 0 12px 0; color: var(--primary-color);">📝 数据录入模式</h4>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">96孔板号</label>
+            <input
+              type="text"
+              id="plateNumber"
+              class="form-input"
+              placeholder="输入板号，如: P096-001"
+              style="width: 100%;"
+            >
+          </div>
+          <button class="btn btn-primary" onclick="handleBatchFillAll()" style="width: 100%;">
+            ⚡ 一键填充所有孔位
+          </button>
+          <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary); text-align: center;">
+            将自动为96个孔位填充板号和孔位信息
+          </div>
+        </div>
+
+        <div id="selectedInfo" style="display: none;">
+          <h4 style="margin: 24px 0 12px 0; color: var(--text-primary);">选中孔位</h4>
+          <div class="selected-position">
+            <div style="font-size: 18px; font-weight: 600; color: var(--primary-color); margin-bottom: 12px;">
+              孔位: <span id="selectedPosition">-</span>
+            </div>
+            <div style="font-size: 14px; color: var(--text-regular); line-height: 1.8;">
+              <div>样本编号: <strong id="selectedSampleId">-</strong></div>
+              <div>样本名称: <strong id="selectedSampleName">-</strong></div>
+              <div>当前节点: <strong id="selectedNode">-</strong></div>
+              <div>状态: <span id="selectedStatus" class="status-badge in-progress">进行中</span></div>
+            </div>
+            <button class="btn btn-primary" onclick="viewSampleDetail()" style="width: 100%; margin-top: 12px;">
+              查看详情
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">快捷操作</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-default" onclick="handleBatchSelect()" style="width: 100%;">
+              批量选择
+            </button>
+            <button class="btn btn-default" onclick="handleClearSelection()" style="width: 100%;">
+              清除选择
+            </button>
+            <button class="btn btn-default" onclick="handleFindEmpty()" style="width: 100%;">
+              查找空位
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    const canvas = document.getElementById('plateCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let plateConfig = {
+      type: '96孔板',
+      rows: 8,
+      cols: 12,
+      wellSize: 40,
+      gap: 10,
+      offsetX: 80,
+      offsetY: 60
+    };
+
+    let positions = [];
+    let selectedPosition = null;
+    let scale = 1;
+
+    // 初始化板位数据
+    function initPlateData() {
+      positions = [];
+      const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+      for (let r = 0; r < plateConfig.rows; r++) {
+        for (let c = 0; c < plateConfig.cols; c++) {
+          const position = `${rows[r]}${String(c + 1).padStart(2, '0')}`;
+          const isUsed = Math.random() > 0.5;
+
+          positions.push({
+            position,
+            row: r,
+            col: c,
+            status: isUsed ? 'used' : 'empty',
+            sampleId: isUsed ? `AK2026022400${Math.floor(Math.random() * 100)}` : null,
+            sampleName: isUsed ? `Sample-${Math.floor(Math.random() * 100)}` : null,
+            currentNode: isUsed ? ['摇菌', '核酸提取', '样本前处理'][Math.floor(Math.random() * 3)] : null
+          });
+        }
+      }
+    }
+
+    // 绘制板位图
+    function drawPlate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.scale(scale, scale);
+
+      const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+      // 绘制列标签
+      ctx.fillStyle = var(--text-secondary);
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      for (let c = 0; c < plateConfig.cols; c++) {
+        const x = plateConfig.offsetX + c * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+        ctx.fillText(c + 1, x, plateConfig.offsetY - 20);
+      }
+
+      // 绘制行标签
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let r = 0; r < plateConfig.rows; r++) {
+        const y = plateConfig.offsetY + r * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+        ctx.fillText(rows[r], plateConfig.offsetX - 20, y);
+      }
+
+      // 绘制孔位
+      positions.forEach(pos => {
+        const x = plateConfig.offsetX + pos.col * (plateConfig.wellSize + plateConfig.gap);
+        const y = plateConfig.offsetY + pos.row * (plateConfig.wellSize + plateConfig.gap);
+
+        // 绘制圆形孔位
+        ctx.beginPath();
+        ctx.arc(
+          x + plateConfig.wellSize / 2,
+          y + plateConfig.wellSize / 2,
+          plateConfig.wellSize / 2 - 2,
+          0,
+          Math.PI * 2
+        );
+
+        // 根据状态填充颜色
+        if (selectedPosition === pos.position) {
+          ctx.fillStyle = '#67C23A';
+        } else if (pos.status === 'used') {
+          ctx.fillStyle = '#409EFF';
+        } else if (pos.status === 'exception') {
+          ctx.fillStyle = '#E6A23C';
+        } else {
+          ctx.fillStyle = '#F5F7FA';
+        }
+        ctx.fill();
+
+        // 绘制边框
+        ctx.strokeStyle = '#DCDFE6';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // 绘制位置标签
+        ctx.fillStyle = pos.status === 'empty' ? '#909399' : '#FFFFFF';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          pos.position,
+          x + plateConfig.wellSize / 2,
+          y + plateConfig.wellSize / 2
+        );
+      });
+
+      ctx.restore();
+    }
+
+    // 处理点击事件
+    canvas.addEventListener('click', (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / scale;
+      const y = (event.clientY - rect.top) / scale;
+
+      // 查找点击的孔位
+      for (let pos of positions) {
+        const wellX = plateConfig.offsetX + pos.col * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+        const wellY = plateConfig.offsetY + pos.row * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+
+        const distance = Math.sqrt((x - wellX) ** 2 + (y - wellY) ** 2);
+
+        if (distance <= plateConfig.wellSize / 2) {
+          handlePositionClick(pos);
+          break;
+        }
+      }
+    });
+
+    // 处理孔位点击
+    function handlePositionClick(pos) {
+      selectedPosition = pos.position;
+      drawPlate();
+
+      // 更新信息面板
+      const selectedInfo = document.getElementById('selectedInfo');
+      selectedInfo.style.display = 'block';
+
+      document.getElementById('selectedPosition').textContent = pos.position;
+
+      if (pos.status === 'used') {
+        document.getElementById('selectedSampleId').textContent = pos.sampleId;
+        document.getElementById('selectedSampleName').textContent = pos.sampleName;
+        document.getElementById('selectedNode').textContent = pos.currentNode;
+        document.getElementById('selectedStatus').textContent = '进行中';
+      } else {
+        document.getElementById('selectedSampleId').textContent = '空闲';
+        document.getElementById('selectedSampleName').textContent = '-';
+        document.getElementById('selectedNode').textContent = '-';
+        document.getElementById('selectedStatus').textContent = '空闲';
+        document.getElementById('selectedStatus').className = 'status-badge';
+      }
+
+      showMessage(`已选择孔位: ${pos.position}`, 'info');
+    }
+
+    // 容器切换
+    function handleContainerChange() {
+      const select = document.getElementById('containerSelect');
+      const value = select.value;
+
+      if (value.includes('48')) {
+        plateConfig.rows = 6;
+        plateConfig.cols = 8;
+      } else {
+        plateConfig.rows = 8;
+        plateConfig.cols = 12;
+      }
+
+      initPlateData();
+      drawPlate();
+      showMessage('容器已切换', 'success');
+    }
+
+    // 刷新
+    function handleRefresh() {
+      initPlateData();
+      drawPlate();
+      showMessage('数据已刷新', 'success');
+    }
+
+    // 导出
+    function handleExport() {
+      showMessage('导出功能开发中...', 'info');
+    }
+
+    // 放大
+    function handleZoomIn() {
+      scale = Math.min(scale + 0.1, 2);
+      drawPlate();
+    }
+
+    // 缩小
+    function handleZoomOut() {
+      scale = Math.max(scale - 0.1, 0.5);
+      drawPlate();
+    }
+
+    // 重置
+    function handleReset() {
+      scale = 1;
+      drawPlate();
+    }
+
+    // 批量选择
+    function handleBatchSelect() {
+      showMessage('批量选择功能开发中...', 'info');
+    }
+
+    // 清除选择
+    function handleClearSelection() {
+      selectedPosition = null;
+      document.getElementById('selectedInfo').style.display = 'none';
+      drawPlate();
+      showMessage('已清除选择', 'info');
+    }
+
+    // 查找空位
+    function handleFindEmpty() {
+      const emptyPositions = positions.filter(p => p.status === 'empty');
+      if (emptyPositions.length > 0) {
+        const firstEmpty = emptyPositions[0];
+        handlePositionClick(firstEmpty);
+        showMessage(`找到 ${emptyPositions.length} 个空位，已定位到第一个`, 'success');
+      } else {
+        showMessage('没有空闲孔位', 'warning');
+      }
+    }
+
+    // 查看样本详情
+    function viewSampleDetail() {
+      if (selectedPosition) {
+        const pos = positions.find(p => p.position === selectedPosition);
+        if (pos && pos.sampleId) {
+          window.open(`sample-detail.html?id=${pos.sampleId}`, '_blank');
+        }
+      }
+    }
+
+    // 一键填充所有孔位
+    function handleBatchFillAll() {
+      const plateNumber = document.getElementById('plateNumber').value.trim();
+
+      if (!plateNumber) {
+        showMessage('请输入96孔板号', 'error');
+        return;
+      }
+
+      if (!confirm(`确定要为所有96个孔位填充板号 "${plateNumber}" 吗?`)) {
+        return;
+      }
+
+      showMessage('正在填充...', 'info');
+
+      // 创建绿色波纹动画效果
+      let delay = 0;
+      positions.forEach((pos, index) => {
+        setTimeout(() => {
+          // 更新孔位状态
+          pos.status = 'used';
+          pos.plateNumber = plateNumber;
+          pos.sampleId = `AK2026022400${String(index + 1).padStart(2, '0')}`;
+          pos.sampleName = `Sample-${index + 1}`;
+          pos.currentNode = '核酸提取';
+
+          // 绘制波纹效果
+          const x = plateConfig.offsetX + pos.col * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+          const y = plateConfig.offsetY + pos.row * (plateConfig.wellSize + plateConfig.gap) + plateConfig.wellSize / 2;
+
+          // 创建波纹元素
+          const ripple = document.createElement('div');
+          ripple.style.cssText = `
+            position: fixed;
+            left: ${canvas.getBoundingClientRect().left + x * scale}px;
+            top: ${canvas.getBoundingClientRect().top + y * scale}px;
+            width: ${plateConfig.wellSize * scale}px;
+            height: ${plateConfig.wellSize * scale}px;
+            border-radius: 50%;
+            background: rgba(103, 194, 58, 0.5);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+          `;
+          document.body.appendChild(ripple);
+
+          // 动画
+          ripple.animate([
+            { transform: 'translate(-50%, -50%) scale(0)', opacity: 1 },
+            { transform: 'translate(-50%, -50%) scale(1.5)', opacity: 0 }
+          ], {
+            duration: 600,
+            easing: 'ease-out'
+          }).onfinish = () => {
+            document.body.removeChild(ripple);
+          };
+
+          // 重绘板位图
+          drawPlate();
+
+          // 最后一个孔位填充完成
+          if (index === positions.length - 1) {
+            setTimeout(() => {
+              showMessage(`成功填充96个孔位! 板号: ${plateNumber}`, 'success');
+
+              // 更新统计信息
+              document.querySelector('.stat-card:first-child .stat-value').textContent = '96';
+              document.querySelector('.stat-card:last-child .stat-value').textContent = '0';
+            }, 100);
+          }
+        }, delay);
+
+        delay += 30; // 每个孔位延迟30ms，总共约3秒完成
+      });
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      initPlateData();
+      drawPlate();
+    });
+  </script>
+</body>
+</html>
